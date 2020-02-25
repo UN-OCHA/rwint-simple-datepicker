@@ -10,6 +10,9 @@
   cursor: default;
   box-sizing: border-box;
 }
+.simpledatepicker-container[hidden] {
+  display: none;
+}
 .simpledatepicker-container * {
   box-sizing: border-box;
 }

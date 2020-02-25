@@ -125,16 +125,29 @@
   // Create a DOM element and set attributes.
   SimpleDatePicker.createElement = function (tagName, attributes, parent, content) {
     var element = document.createElement(tagName);
-    var attribute;
-    if (attributes) {
-      for (attribute in attributes) {
+    if (typeof attributes === 'object') {
+      for (var attribute in attributes) {
         if (attributes.hasOwnProperty(attribute)) {
           element.setAttribute(attribute, attributes[attribute]);
         }
       }
     }
-    if (content) {
-      element.innerHTML = content;
+    switch (typeof content) {
+      case 'string':
+        element.appendChild(document.createTextNode(content));
+        break;
+
+      case 'object':
+        if (content.nodeType) {
+          element.appendChild(content);
+        }
+        // Assume is a list of dom elements.
+        else if (typeof content.length !== 'undefined') {
+          for (var i = 0, l = content.length; i < l; i++) {
+            element.appendChild(content[i]);
+          }
+        }
+        break;
     }
     if (parent) {
       parent.appendChild(element);
@@ -145,6 +158,22 @@
   // Trim a string.
   SimpleDatePicker.trim = function (string) {
     return string.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, '');
+  };
+
+  // Set element text.
+  SimpleDatePicker.setText = function (element, text) {
+    if ('textContent' in element) {
+      element.textContent = text;
+    }
+    else {
+      element.innerText = text;
+    }
+  };
+
+  // Get element text.
+  SimpleDatePicker.getText = function (element, trimmed) {
+    var text = 'textContent' in element ? element.textContent : element.innerText;
+    return trimmed === true ? SimpleDatePicker.trim(text) : text;
   };
 
   // Merge properties of objects passed as arguments into target.
@@ -582,7 +611,7 @@
       var focusedElement = document.activeElement;
       var dateIsFocused = focusedElement.className.indexOf(classDayIn) !== -1;
       var datesContainerIsFocused = focusedElement.className.indexOf(classDays) !== -1;
-      var currentPosition = parseInt(SimpleDatePicker.trim(focusedElement.textContent), 10) - 1;
+      var currentPosition = parseInt(SimpleDatePicker.getText(focusedElement, true), 10) - 1;
       var activeDates = this.retrieveDaysIn();
       var newPosition = 0;
 
@@ -825,7 +854,7 @@
     // Update a calendar based on the new date.
     updateCalendar: function (calendar, date) {
       calendar.date = date;
-      calendar.titleDate.innerHTML = date.format(this.options.formats.titleDate);
+      SimpleDatePicker.setText(calendar.titleDate, date.format(this.options.formats.titleDate));
       this.updateDays(date, calendar.days);
     },
 
@@ -878,7 +907,8 @@
                           (date.day() === firstWeekDay ? classFirstWeekDay + ' ' : '') +
                           (date.month() === month ? classDayIn : classDayOut) +
                           (this.today === time ? ' ' + classToday : '');
-      element.innerHTML = date.format(formatDay);
+
+      SimpleDatePicker.setText(element, date.format(formatDay));
 
       if (date.month() !== month) {
         element.setAttribute('disabled', 'disabled');
@@ -1058,12 +1088,12 @@
 
     // Show the calendars.
     show: function () {
-      if (this.container.style.display === 'none') {
+      if (!this.visible()) {
         if (this.options.autoUpdatePosition === true) {
           this.updatePosition();
         }
         this.fire('show').fire('opened');
-        this.container.style.display = '';
+        this.container.removeAttribute('hidden');
 
         // Focus the first selectable date in the datepicker.
         var days = this.retrieveDaysIn();
@@ -1077,16 +1107,16 @@
 
     // Hide the calendars.
     hide: function () {
-      if (this.container.style.display !== 'none') {
+      if (this.visible()) {
         this.fire('hide').fire('closed');
-        this.container.style.display = 'none';
+        this.container.setAttribute('hidden', '');
       }
       return this;
     },
 
     // Toggle visibility.
     toggle: function () {
-      if (this.container.style.display === 'none') {
+      if (!this.visible()) {
         this.show();
       }
       else {
@@ -1097,7 +1127,7 @@
 
     // Check if the date picker is visible.
     visible: function () {
-      return this.container.style.display !== 'none';
+      return !this.container.hasAttribute('hidden');
     },
     // Update the position and size of the selector.
     updatePosition: function () {
