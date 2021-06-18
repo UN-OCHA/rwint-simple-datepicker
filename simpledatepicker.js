@@ -475,31 +475,33 @@
       firstWeekDay: 0,
       // Whether to highlight today's day or not.
       highlightToday: true,
+      // Namespace (prefix) for the classes.
+      namespace: 'simpledatepicker',
       // Classes used for theme the calendars.
       classes: {
-        container: 'simpledatepicker-container',
-        calendar: 'simpledatepicker-calendar',
-        calendarFirst: 'simpledatepicker-calendar-first',
-        calendarMIddle: 'simpledatepicker-calendar-middle',
-        calendarLast: 'simpledatepicker-calendar-last',
-        title: 'simpledatepicker-title',
-        titleDate: 'simpledatepicker-title-date',
-        titlePrevious: 'simpledatepicker-title-previous',
-        titleNext: 'simpledatepicker-title-next',
-        titleMonth: 'simpledatepicker-title-month',
-        titleYear: 'simpledatepicker-title-year',
-        navigationControl: 'simpledatepicker-control',
-        header: 'simpledatepicker-header',
-        days: 'simpledatepicker-days',
-        time: 'simpledatepicker-time',
-        dayIn: 'simpledatepicker-day-in',
-        dayOut: 'simpledatepicker-day-out',
-        firstWeekDay: 'simpledatepicker-first-week-day',
-        selectedDay: 'simpledatepicker-selected-day',
-        activeDay: 'simpledatepicker-active-day',
-        today: 'simpledatepicker-today',
-        multiple: 'simpledatepicker-multiple',
-        linked: 'simpledatepicker-linked'
+        container: 'container',
+        calendar: 'calendar',
+        calendarFirst: 'calendar-first',
+        calendarMIddle: 'calendar-middle',
+        calendarLast: 'calendar-last',
+        title: 'title',
+        titleDate: 'title-date',
+        titlePrevious: 'title-previous',
+        titleNext: 'title-next',
+        titleMonth: 'title-month',
+        titleYear: 'title-year',
+        navigationControl: 'control',
+        header: 'header',
+        days: 'days',
+        time: 'time',
+        dayIn: 'day-in',
+        dayOut: 'day-out',
+        firstWeekDay: 'first-week-day',
+        selectedDay: 'selected-day',
+        activeDay: 'active-day',
+        today: 'today',
+        multiple: 'multiple',
+        linked: 'linked'
       },
       // Navigation.
       navigation: {
@@ -543,6 +545,18 @@
         if (typeof this[property] === 'function') {
           this[property] = bind(this[property], this);
         }
+      }
+
+      // Prefix the classes.
+      if (this.options.namespace !== '') {
+        var prefix = this.options.namespace;
+        var classes = this.options.classes;
+        for (var property in classes) {
+          if (classes.hasOwnProperty(property)) {
+            classes[property] = prefix + '-' + classes[property];
+          }
+        }
+        this.options.classes = classes;
       }
 
       // Event listeners.
