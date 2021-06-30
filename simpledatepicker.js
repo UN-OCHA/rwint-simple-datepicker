@@ -547,23 +547,27 @@
         }
       }
 
+      // We make a copy of the classes as we want to modify them. Without that
+      // we would be modifying the same object across several instances and
+      // so we would end up with the classes prefixed multiple times.
+      var classes = SimpleDatePicker.extend({}, this.options.classes);
+
       // Prefix the classes.
-      if (this.options.namespace !== '') {
-        var prefix = this.options.namespace;
-        var classes = this.options.classes;
+      var prefix = this.options.namespace;
+      if (typeof prefix === 'string' && prefix !== '') {
         for (var property in classes) {
           if (classes.hasOwnProperty(property)) {
             classes[property] = prefix + '-' + classes[property];
           }
         }
-        this.options.classes = classes;
       }
+      this.classes = classes;
 
       // Event listeners.
       this.listeners = {};
 
       // Regexp used to extract the date from a day element.
-      this.timeMatcher = new RegExp(this.options.classes.time + '-(\\d+)');
+      this.timeMatcher = new RegExp(this.classes.time + '-(\\d+)');
 
       this.selection = [];
 
@@ -578,7 +582,7 @@
       var target = event.target;
       var hasClass = SimpleDatePicker.hasClass;
       var options = this.options;
-      var classes = options.classes;
+      var classes = this.classes;
       var classDayIn = classes.dayIn;
       var classPrevious = classes.titlePrevious;
       var classNext = classes.titleNext;
@@ -600,7 +604,7 @@
 
     // Handle keypress for navigating calendar.
     handleKeyPress: function (event) {
-      var classes = this.options.classes;
+      var classes = this.classes;
       var classDayIn = classes.dayIn;
       var classDays = classes.days;
       var keyCodes = SimpleDatePicker.KeyCodes;
@@ -665,7 +669,7 @@
     retrieveCalendar: function (element) {
       var hasClass = SimpleDatePicker.hasClass;
       var calendarElement = null;
-      var calendarClass = this.options.classes.calendar;
+      var calendarClass = this.classes.calendar;
       var calendars = this.calendars;
 
       while (element !== this.container) {
@@ -696,7 +700,7 @@
     // Retrieve a list of days matching the given date.
     retrieveDays: function (date) {
       if (this.container.getElementsByClassName) {
-        return this.container.getElementsByClassName(this.options.classes.time + '-' + date);
+        return this.container.getElementsByClassName(this.classes.time + '-' + date);
       }
       else {
         var retrieveDate = this.retrieveDate;
@@ -718,7 +722,7 @@
 
     // Retrieve the days in the current month.
     retrieveDaysIn: function () {
-      var classDayIn = this.options.classes.dayIn;
+      var classDayIn = this.classes.dayIn;
       var calendars = this.calendars;
       var elements = [];
 
@@ -738,7 +742,7 @@
     select: function (day) {
       var hasClass = SimpleDatePicker.hasClass;
       var options = this.options;
-      var classSelectedDay = options.classes.selectedDay;
+      var classSelectedDay = this.classes.selectedDay;
       var selected = hasClass(day, classSelectedDay);
       var selection = this.selection;
       var selectionLength = selection.length;
@@ -782,7 +786,7 @@
       var addClass = SimpleDatePicker.addClass;
       var removeClass = SimpleDatePicker.removeClass;
       var selection = this.selection;
-      var classSelectedDay = this.options.classes.selectedDay;
+      var classSelectedDay = this.classes.selectedDay;
       var days = this.retrieveDays(date);
 
       // We select all the days of all the calendars with the same date.
@@ -816,8 +820,7 @@
     selectRange: function (dateStart, dateEnd) {
       var addClass = SimpleDatePicker.addClass;
       var retrieveDate = this.retrieveDate;
-      var options = this.options;
-      var classes = options.classes;
+      var classes = this.classes;
       var classSelectedDay = classes.selectedDay;
       var classActiveDay = classes.activeDay;
       var calendars = this.calendars;
@@ -848,7 +851,7 @@
     // Unselect all selected days.
     unselectAll: function () {
       var removeClass = SimpleDatePicker.removeClass;
-      var classes = this.options.classes;
+      var classes = this.classes;
       var classSelectedDay = classes.selectedDay;
       var classActiveDay = classes.activeDay;
       var calendars = this.calendars;
@@ -890,14 +893,15 @@
       var selection = this.selection;
       var selectionLength = selection.length;
       var options = this.options;
+      var classes = this.classes;
 
       if (options.mode === 'range' && selectionLength > 1 && date > selection[0] && date < selection[1]) {
-        addClass(day, options.classes.activeDay);
+        addClass(day, classes.activeDay);
       }
       else {
         for (var i = 0; i < selectionLength; i++) {
           if (selection[i] === date) {
-            addClass(day, options.classes.selectedDay);
+            addClass(day, classes.selectedDay);
             break;
           }
         }
@@ -909,7 +913,7 @@
       var options = this.options;
       var firstWeekDay = options.firstWeekDay;
       var formatDay = options.formats.day;
-      var classes = options.classes;
+      var classes = this.classes;
       var classTime = classes.time;
       var classDayIn = classes.dayIn;
       var classDayOut = classes.dayOut;
@@ -975,7 +979,7 @@
     createCalendar: function (container, date, position) {
       var createElement = SimpleDatePicker.createElement;
       var options = this.options;
-      var classes = options.classes;
+      var classes = this.classes;
       var classPrevious = classes.titlePrevious;
       var classNext = classes.titleNext;
       var classYear = classes.titleYear;
@@ -1036,13 +1040,13 @@
 
     // Link calendars, changing month/year affects all calendars.
     linkCalendars: function () {
-      SimpleDatePicker.addClass(this.container, this.options.classes.linked);
+      SimpleDatePicker.addClass(this.container, this.classes.linked);
       return this;
     },
 
     // Unlink calendars, changing month/year affects only the current calendar.
     unlinkCalendars: function () {
-      SimpleDatePicker.removeClass(this.container, this.options.classes.linked);
+      SimpleDatePicker.removeClass(this.container, this.classes.linked);
       return this;
     },
 
@@ -1050,8 +1054,9 @@
     create: function () {
       var createElement = SimpleDatePicker.createElement;
       var options = this.options;
-      var container = createElement('div', {'class': options.classes.container});
-      var date = this.createDate(this.options.date, true).date(1);
+      var classes = this.classes;
+      var container = createElement('div', {'class': classes.container});
+      var date = this.createDate(options.date, true).date(1);
       var calendars = [];
 
       for (var i = 0, l = options.calendars; i < l; i++) {
@@ -1061,7 +1066,7 @@
       }
 
       if (options.calendars > 1) {
-        SimpleDatePicker.addClass(container, options.classes.multiple);
+        SimpleDatePicker.addClass(container, classes.multiple);
 
         if (options.linked) {
           this.linkCalendars();
@@ -1077,8 +1082,8 @@
         this.hide();
       }
 
-      if (this.options.container) {
-        this.options.container.appendChild(container);
+      if (options.container) {
+        options.container.appendChild(container);
       }
       else {
         document.body.appendChild(container);
