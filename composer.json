@@ -1,0 +1,26 @@
+{
+  "name": "reliefweb/rwint-simple-datepicker",
+  "description": "Simple standalone datepicker javascript library",
+  "keywords": [
+    "reliefweb",
+    "javascript",
+    "php"
+  ],
+  "type": "drupal-library",
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://packagist.org"
+    },
+    {
+      "packagist": false
+    }
+  ],
+  "require": {
+    "php": ">=5.3.3"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "8.3.*",
+    "drupal/coder": "8.3.*"
+  }
+}
