@@ -277,6 +277,7 @@
 
     create: function (date) {
       this.dateObject = typeof date === 'undefined' || date === null ? new Date() : new Date(date);
+      return this;
     },
 
     utc: function (date) {
@@ -442,8 +443,8 @@
       }
     },
 
-    clone: function () {
-      return new SimpleDatePicker.Date(this.dateObject, this.options);
+    clone: function (date) {
+      return new SimpleDatePicker.Date(date || this.dateObject, this.options);
     },
 
     invalid: function () {
@@ -522,7 +523,8 @@
       formats: {
         titleDate: 'MMMM, YYYY',
         headerDay: 'dd',
-        day: 'D'
+        day: 'D',
+        dayLabel: 'dddd D MMMM YYYY'
       },
       // Element to which attach the datepicker.
       element: null,
@@ -531,6 +533,8 @@
       container: null,
       // Default visibility.
       visible: true,
+      // Move the focus to the date element on open.
+      focusDayOnOpen: true,
       // Automatically update the calendar position before display.
       autoUpdatePosition: false
     },
@@ -659,9 +663,9 @@
       // Focus the new day.
       if (newPosition < 0 || newPosition >= activeDates.length) {
         // Switch to the previous or next month.
-        this.updateCalendars('month', newPosition < 0 ? -1 : 1);
+        this.updateCalendars('months', newPosition < 0 ? -1 : 1);
         // Get the day element for the new date.
-        this.focusDay(this.retrieveDay(activeDate.add('days', newPosition - currentPosition)));
+        this.focusDay(activeDate.add('days', newPosition - currentPosition));
       }
       else {
         this.focusDay(activeDates[newPosition]);
@@ -807,11 +811,11 @@
         var day = days[i];
         if (select !== false) {
           addClass(day, classSelectedDay);
-          day.setAttribute('aria-selected', 'true');
+          day.setAttribute('aria-pressed', true);
         }
         else {
           removeClass(day, classSelectedDay);
-          day.removeAttribute('aria-selected');
+          day.setAttribute('aria-pressed', false);
         }
       }
 
@@ -874,7 +878,7 @@
           var day = days[i];
           removeClass(day, classSelectedDay);
           removeClass(day, classActiveDay);
-          day.removeAttribute('aria-selected');
+          day.setAttribute('aria-pressed', false);
         }
       }
 
@@ -893,7 +897,12 @@
       var calendars = calendar ? [calendar] : this.calendars;
       for (var i = 0, l = calendars.length; i < l; i++) {
         calendar = calendars[i];
-        if (typeof type !== 'undefined') {
+        // Replace the date.
+        if (type === null && typeof value !== 'undefined') {
+          calendar.date.create(value).add('months', i);
+        }
+        // Update the date.
+        else if (typeof type !== 'undefined' && type !== null) {
           calendar.date.add(type, value);
         }
         this.updateCalendar(calendar, calendar.date);
@@ -907,18 +916,22 @@
       var selectionLength = selection.length;
       var options = this.options;
       var classes = this.classes;
+      var selected = false;
 
       if (options.mode === 'range' && selectionLength > 1 && date > selection[0] && date < selection[1]) {
         addClass(day, classes.activeDay);
+        selected = true;
       }
       else {
         for (var i = 0; i < selectionLength; i++) {
           if (selection[i] === date) {
             addClass(day, classes.selectedDay);
+            selected = true;
             break;
           }
         }
       }
+      day.setAttribute('aria-pressed', selected);
     },
 
     // Update the class and date for a given day element.
@@ -933,15 +946,16 @@
       var classFirstWeekDay = classes.firstWeekDay;
       var classToday = classes.today;
       var time = date.valueOf();
-      var label = date.date() + ' ' + date.options.months[date.month()];
 
       element.className = (classTime + '-' + time + ' ') +
                           (date.day() === firstWeekDay ? classFirstWeekDay + ' ' : '') +
                           (date.month() === month ? classDayIn : classDayOut) +
                           (this.today === time ? ' ' + classToday : '');
 
+      // Set the button label.
       SimpleDatePicker.setText(element, date.format(formatDay));
 
+      // Disable the button if it's not in the current month.
       if (date.month() !== month) {
         element.setAttribute('disabled', 'disabled');
       }
@@ -949,8 +963,10 @@
         element.removeAttribute('disabled');
       }
 
-      element.setAttribute('aria-label', label);
+      // Update the button label for accessibility.
+      element.setAttribute('aria-label', date.format(options.formats.dayLabel));
 
+      // Update the day if it's in the selection.
       this.updateSelectedDay(element, time);
 
       return element;
@@ -960,20 +976,39 @@
     updateDays: function (date, days) {
       var updateDay = this.updateDay;
       var month = date.month();
+      var focusableDay = null;
+      var focusableDaySelected = false;
 
       date = date.clone().date(0).day(this.options.firstWeekDay);
 
       // Update the days.
       for (var i = 0; i < 42; i++) {
-        updateDay(days[i], month, date);
+        var day = updateDay(days[i], month, date);
+        var selected = day.getAttribute('aria-pressed') == 'true';
+        var disabled = day.hasAttribute('disabled');
+
+        if (!disabled) {
+          if (!focusableDay || (!focusableDaySelected && selected)) {
+            focusableDay = day;
+            focusableDaySelected = selected;
+          }
+        }
+
+        // Mark the day of unfocusable.
+        day.setAttribute('tabindex', -1);
+
         date.add('days', 1);
       }
+
+      // Update the day that can be focused.
+      focusableDay.setAttribute('tabindex', 0);
     },
 
     // Create the days of a calendar.
     createDays: function (date, container) {
       var createElement = SimpleDatePicker.createElement;
       var updateDay = this.updateDay;
+      var formatDayLabel = this.options.formats.dayLabel;
       var month = date.month();
       var days = [];
       var i = 42;
@@ -982,8 +1017,12 @@
 
       // Create the days.
       while (i--) {
-        var label = date.date() + ' ' + date.options.months[date.month()];
-        var element = createElement('button', {'type': 'button', 'aria-label': label, 'tabindex': '-1'}, container);
+        var element = createElement('button', {
+          'type': 'button',
+          'aria-label': date.format(formatDayLabel),
+          'aria-pressed': false,
+          'tabindex': -1
+        }, container);
         days.push(updateDay(element, month, date));
         date.add('days', 1);
       }
@@ -1130,10 +1169,10 @@
         this.fire('show').fire('opened');
         this.container.removeAttribute('hidden');
 
-        // Focus the currently selected day or the first selectable date in the
-        // datepicker.
+        // Focus the currently selected day or the current day.
         var selection = this.getSelection();
-        this.focusDay(selection.length > 0 ? this.retrieveDay(selection[0]) : null);
+        var day = selection.length > 0 ? selection[0] : this.today;
+        this.focusDay(day, this.options.focusDayOnOpen);
       }
       return this;
     },
@@ -1241,7 +1280,7 @@
         }
 
         this.selection = selection;
-        this.updateCalendars();
+        this.updateCalendars(null, selection[0]);
       }
 
       if (trigger !== false) {
@@ -1253,13 +1292,19 @@
     // Clear the selected items.
     clear: function () {
       this.selection = [];
-      this.updateCalendars();
+      this.updateCalendars(null, this.today);
       return this;
     },
 
     // Focus a day element.
-    focusDay: function (day) {
+    focusDay: function (day, focus) {
       var days = this.retrieveDaysIn();
+
+      if (typeof day !== 'undefined' && !(day instanceof HTMLElement)) {
+        day = this.retrieveDay(day);
+      }
+
+      // Update the focusable status of the calendar days.
       for (var i = 0, l = days.length; i < l; i++) {
         var element = days[i];
         if (!day && i === 0) {
@@ -1267,7 +1312,12 @@
         }
         element.setAttribute('tabindex', element !== day ? -1 : 0);
       }
-      day.focus();
+
+      if (focus !== false) {
+        day.focus();
+      }
+
+      return this;
     },
 
     // Get the currently focused day.
