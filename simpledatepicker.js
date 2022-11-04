@@ -87,6 +87,16 @@
     }
   };
 
+  // Stop event propagation.
+  SimpleDatePicker.stopPropagation = function (event) {
+    if (typeof event.stopPropagation !== 'undefined') {
+      event.stopPropagation();
+    }
+    else {
+      event.cancelBubble = true;
+    }
+  };
+
   // Get a css style of an element. (Possible unexpected results in IE8).
   SimpleDatePicker.getStyle = function (element, property, pseudoElement) {
     if (window.getComputedStyle) {
@@ -626,7 +636,8 @@
       SimpleDatePicker.preventDefault(event);
 
       // Close the datepicker if Escape is pressed.
-      if (isEscape) {
+      if (isEscape && this.visible()) {
+        SimpleDatePicker.stopPropagation(event);
         this.clear().hide();
         return;
       }
