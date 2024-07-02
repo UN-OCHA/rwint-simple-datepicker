@@ -581,7 +581,7 @@
       this.listeners = {};
 
       // Regexp used to extract the date from a day element.
-      this.timeMatcher = new RegExp(this.classes.time + '-(\\d+)');
+      this.timeMatcher = new RegExp(this.classes.time + '-(-?\\d+)');
 
       this.selection = [];
 
